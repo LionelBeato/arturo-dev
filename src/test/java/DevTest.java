@@ -5,6 +5,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -60,27 +63,14 @@ public class DevTest {
         driver.get("https://ds-dev.dematic.com/");
         // path representing the first major element we use to to start drilling down to the shadow root
         String mainPath = "//*[@id=\"app\"]/nui-app-frame/div/div/nui-login";
-        // find shadow root and drill down to input field
-        // here we use css selectors as its the most compatible way of accessing
-        // shadow root elements
-        WebElement domainField = driver.findElement(By.xpath(mainPath))
-                .getShadowRoot()// first access †o shadow root
-                .findElement(By.cssSelector("div"))
-                .findElement(By.cssSelector("div"))
-                .findElement(By.cssSelector("div"))
-                .findElement(By.cssSelector("div"))
-                .findElement(By.cssSelector("nui-textfield"))
-                .getShadowRoot() // access to nested shadow root
-                .findElement(By.cssSelector("div"))
-                .findElement(By.cssSelector("label"))
-                .findElement(By.cssSelector("input"));
+        // Element representing domain text field
+        WebElement domainField = expandRootElement(driver.findElement(By.xpath(mainPath)),
+                "querySelectorAll(\"nui-textfield\")[1]"); // using querySelectorAll to retrieve all textfields and selecting the second one in the array
+        // in the manner that we accessed it, we are able to interact with our domain field and send keys
+        domainField.sendKeys("testing ^_^");
 
-        // script execution in order to manipulate the input's value
-        String js = "arguments[0].setAttribute('value','testing...')";
-       ((JavascriptExecutor) driver).executeScript(js, domainField);
-
-
-       // webelement representing sso login button
+        // webelement representing sso login button
+        // note how we use cssselectors for best compatibility
         WebElement ssoLogin = driver.findElement(By.xpath(mainPath))
                 .getShadowRoot()
                 .findElement(By.cssSelector("div"))
@@ -89,16 +79,22 @@ public class DevTest {
                 .findElement(By.cssSelector("div.login-group"))
                 .findElement(By.cssSelector("nui-button[icon]"));
 
-
+        // clicking on SSO login button
         ssoLogin.click();
+
+        // checking values of attributes on elements
         System.out.println(ssoLogin.getAttribute("class"));
         System.out.println(domainField.getAttribute("value"));
 
     }
+    // customized root expander method via js execution
+    public WebElement expandRootElement(WebElement element, String additionalScript) {
+        return (WebElement) ((JavascriptExecutor) driver)
+                .executeScript("return arguments[0].shadowRoot." + additionalScript,element);
+    }
 
-    // abandoned root expander method via js execution
-//    public WebElement expandRootElement(WebElement element) {
-//        return (WebElement) ((JavascriptExecutor) driver)
-//                .executeScript("return arguments[0].shadowRoot",element);
-//    }
+    public WebElement expandRootElement(WebElement element) {
+        return (WebElement) ((JavascriptExecutor) driver)
+                .executeScript("return arguments[0].shadowRoot",element);
+    }
 }
